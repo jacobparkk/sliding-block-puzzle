@@ -48,9 +48,8 @@ This project requires no special installation. Simply clone the repository and o
 1.  **Clone the repository:**
 
     ```bash
-    git clone <repository-url>
+    git clone https://github.com/jacobparkk/sliding-block-puzzle.git
     ```
-    (Replace `<repository-url>` with the actual URL of your GitHub repository.)
 
 2.  **Navigate to the project directory:**
 
