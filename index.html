@@ -1,21 +1,31 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="en" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Block Shuffle Puzzle</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="A polished, animated sliding puzzle with multiple difficulties.">
+  <title>Shift — Sliding Puzzle</title><link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="puzzle-container">
-        <div id="puzzle-board">
-            </div>
+<main class="shell">
+  <header><div><p class="eyebrow">A POCKET-SIZED BRAIN BREAK</p><h1>Shift<span>.</span></h1></div>
+    <button id="theme" class="icon" aria-label="Toggle color theme">☾</button></header>
+  <section class="game-card">
+    <div class="toolbar">
+      <div class="sizes" role="group" aria-label="Puzzle size"><button data-size="3" class="active">3×3</button><button data-size="4">4×4</button><button data-size="5">5×5</button></div>
+      <button id="sound" class="text-button" aria-pressed="true">Sound on</button>
     </div>
-
-    <div id="message"></div>
-
-    <button id="new-game-button">New Game</button>
-
-    <script src="script.js"></script>
-</body>
-</html>
+    <div class="stats">
+      <div><span>Moves</span><strong id="moves">0</strong></div><div><span>Time</span><strong id="time">00:00</strong></div>
+      <div><span>Best</span><strong id="best">—</strong></div><div><span>Streak</span><strong id="streak">0</strong></div>
+    </div>
+    <div class="board-wrap"><div id="board" class="board" role="grid" aria-label="Sliding puzzle"></div>
+      <div id="win" class="win" hidden><div class="burst">✦</div><p>SOLVED</p><h2 id="winTitle">Clean run.</h2><span id="winStats"></span><button id="playAgain">Play again</button></div>
+    </div>
+    <div id="message" class="message" aria-live="polite">Arrange the tiles from 1 upward.</div>
+    <div class="controls"><button id="undo" disabled>↶ Undo</button><button id="newGame" class="primary">New puzzle</button><button id="hint">Hint ✦</button></div>
+  </section>
+  <footer><span>Tap, swipe, drag, or use arrow keys</span><button id="how">How to play</button></footer>
+</main>
+<dialog id="help"><button id="closeHelp" aria-label="Close">×</button><p class="eyebrow">HOW TO PLAY</p><h2>Put everything in its place.</h2><p>Slide a numbered tile into the empty space. Finish in ascending order with the empty space at the bottom-right.</p><ul><li>Tap or drag any tile in the same row or column as the gap.</li><li>Use arrow keys to move the gap.</li><li>Undo mistakes or request a highlighted legal move.</li></ul></dialog>
+<script src="script.js"></script>
+</body></html>

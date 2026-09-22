@@ -1,168 +1,29 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const puzzleBoard = document.getElementById('puzzle-board');
-    const message = document.getElementById('message');
-    const newGameButton = document.getElementById('new-game-button');
-    let gridSize = 3; // Start with 3x3
-    let cells = [];
-    let emptyCellIndex = 0;
-
-    // --- Drag and Drop Event Handlers ---
-    function dragStart(event) {
-        event.dataTransfer.setData('text/plain', event.target.dataset.index);
-        event.target.classList.add('dragging');
-    }
-
-    function dragOver(event) {
-      event.preventDefault(); // Necessary to allow drop
-      if (event.target.classList.contains('puzzle-cell')) {
-        event.target.classList.add('drag-over');
-      }
-    }
-
-    function dragEnter(event) {
-        event.preventDefault(); // Necessary in some browsers
-    }
-
-    function dragLeave(event) {
-        if (event.target.classList.contains('puzzle-cell')) {
-            event.target.classList.remove('drag-over');
-        }
-    }
-
-    function dragEnd(event) {
-        event.target.classList.remove('dragging');
-    }
-
-    function drop(event) {
-      event.preventDefault();
-      if (!event.target.classList.contains('puzzle-cell')) {
-          return; // Not a valid drop target
-      }
-      event.target.classList.remove('drag-over');
-
-      const draggedIndex = parseInt(event.dataTransfer.getData('text/plain'));
-      const targetIndex = parseInt(event.target.dataset.index);
-
-      // Check if the move is valid (adjacent to the empty cell)
-      if (isValidMove(draggedIndex, targetIndex)) {
-          swapCells(draggedIndex, targetIndex);
-          renderBoard();
-          if (checkWin()) {
-              message.textContent = 'You Win!';
-          }
-      }
-    }
-    // --- End Drag and Drop ---
-
-    function createBoard() {
-        const totalCells = gridSize * gridSize;
-        cells = Array.from({ length: totalCells }, (_, i) => i + 1);
-        emptyCellIndex = totalCells - 1; // Empty cell is the last one
-        cells[emptyCellIndex] = null; // Represent the empty cell with null
-
-         // Make it solvable.
-        do {
-            shuffleArray(cells);
-        } while (!isSolvable());
-
-        renderBoard();
-    }
-
-    function renderBoard() {
-        puzzleBoard.innerHTML = ''; // Clear the board
-        cells.forEach((value, index) => {
-            const cell = document.createElement('div');
-            cell.classList.add('puzzle-cell');
-            cell.dataset.index = index;
-            if (value === null) {
-                cell.classList.add('empty');
-            } else {
-                cell.textContent = value;
-                cell.draggable = true; // Make cells draggable
-                cell.addEventListener('dragstart', dragStart);
-                cell.addEventListener('dragend', dragEnd);
-            }
-
-            // Add drag and drop event listeners
-            cell.addEventListener('dragover', dragOver);
-            cell.addEventListener('dragenter', dragEnter);
-            cell.addEventListener('dragleave', dragLeave);
-            cell.addEventListener('drop', drop);
-            puzzleBoard.appendChild(cell);
-        });
-
-          // Update grid template columns/rows for dynamic resizing
-        puzzleBoard.style.gridTemplateColumns = `repeat(${gridSize}, 100px)`;
-        puzzleBoard.style.gridTemplateRows = `repeat(${gridSize}, 100px)`;
-    }
-
-    function shuffleArray(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]]; // Swap
-      }
-
-      // Ensure empty is not the last element.
-      if (array.indexOf(null) === array.length -1)
-        shuffleArray(array);
-    }
-
-    // Check if the shuffled puzzle is solvable
-    function isSolvable() {
-      let inversions = 0;
-      const puzzleSize = cells.length;
-      for (let i = 0; i < puzzleSize; i++) {
-          for (let j = i + 1; j < puzzleSize; j++) {
-              if (cells[i] && cells[j] && cells[i] > cells[j]) {
-                  inversions++;
-              }
-          }
-      }
-
-      const emptyIndex = cells.indexOf(null);
-
-        //For even grid sizes, an odd number of inversions, plus the row number of the blank square (counting from 0) is even for a solvable puzzle.
-        //For odd grid sizes, the number of inversions must be even for a solvable puzzle.
-
-      if (gridSize % 2 === 0) { // Even grid
-          return (inversions + Math.floor(emptyIndex / gridSize)) % 2 === 0;
-      } else { // Odd grid
-          return inversions % 2 === 0;
-      }
-    }
-
-    function isValidMove(draggedIndex, targetIndex) {
-        const rowDiff = Math.abs(Math.floor(draggedIndex / gridSize) - Math.floor(targetIndex / gridSize));
-        const colDiff = Math.abs((draggedIndex % gridSize) - (targetIndex % gridSize));
-
-        // Check if the cells are adjacent (row or column difference of 1, but not both)
-        // and if the target cell is the empty cell.
-        return (
-            (rowDiff === 1 && colDiff === 0 || rowDiff === 0 && colDiff === 1) &&
-            cells[targetIndex] === null
-        );
-    }
-
-
-    function swapCells(index1, index2) {
-      [cells[index1], cells[index2]] = [cells[index2], cells[index1]];
-      if (cells[index1] === null) emptyCellIndex = index1;
-      if (cells[index2] === null) emptyCellIndex = index2;
-    }
-
-    function checkWin() {
-      for (let i = 0; i < cells.length - 1; i++) {
-        if (cells[i] !== i + 1) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    newGameButton.addEventListener('click', () => {
-        message.textContent = ''; // Clear win message
-        createBoard();
-    });
-
-    createBoard(); // Initialize the game
-});
+"use strict";
+const $=id=>document.getElementById(id), boardEl=$("board"), moveEl=$("moves"),timeEl=$("time"),bestEl=$("best"),streakEl=$("streak"),message=$("message");
+let size=3,cells=[],blank=0,moves=0,history=[],started=false,won=false,startTime=0,timer=null,sound=true,pointerStart=null;
+const key=n=>`shift-best-${n}`, solved=n=>Array.from({length:n*n},(_,i)=>i===n*n-1?0:i+1);
+function neighbors(index){const r=Math.floor(index/size),c=index%size,out=[];if(r)out.push(index-size);if(r<size-1)out.push(index+size);if(c)out.push(index-1);if(c<size-1)out.push(index+1);return out}
+function shuffle(){cells=solved(size);blank=cells.length-1;for(let i=0;i<size*size*25;i++){const choices=neighbors(blank),from=choices[Math.floor(Math.random()*choices.length)];[cells[blank],cells[from]]=[cells[from],cells[blank]];blank=from}if(isSolved())shuffle()}
+function render(moved=-1){boardEl.style.setProperty("--size",size);boardEl.innerHTML=cells.map((value,i)=>`<button class="tile ${value?"":"empty"} ${i===moved?"moving":""}" data-index="${i}" role="gridcell" aria-label="${value?`Tile ${value}`:"Empty space"}">${value||""}</button>`).join("");moveEl.textContent=moves;bestEl.textContent=formatBest(localStorage.getItem(key(size)));$("undo").disabled=!history.length||won}
+function newGame(){clearInterval(timer);shuffle();moves=0;history=[];started=false;won=false;timeEl.textContent="00:00";$("win").hidden=true;message.textContent="Arrange the tiles from 1 upward.";render()}
+function begin(){if(started)return;started=true;startTime=Date.now();timer=setInterval(()=>timeEl.textContent=formatTime(Math.floor((Date.now()-startTime)/1000)),250)}
+function indicesTowardBlank(index){const r=Math.floor(index/size),br=Math.floor(blank/size),c=index%size,bc=blank%size;if(r===br){const step=index<blank?1:-1,out=[];for(let i=blank-step;i!==index-step;i-=step)out.push(i);return out}if(c===bc){const step=index<blank?size:-size,out=[];for(let i=blank-step;i!==index-step;i-=step)out.push(i);return out}return[]}
+function move(index,record=true){if(won||!cells[index])return false;const sequence=indicesTowardBlank(index);if(!sequence.length)return false;begin();if(record)history.push({cells:cells.slice(),count:sequence.length});sequence.forEach(from=>{[cells[blank],cells[from]]=[cells[from],cells[blank]];blank=from;moves++});tone();render(blank);if(isSolved())finish();return true}
+function isSolved(){return cells.every((x,i)=>x===(i===cells.length-1?0:i+1))}
+function finish(){won=true;clearInterval(timer);const seconds=Math.floor((Date.now()-startTime)/1000),old=JSON.parse(localStorage.getItem(key(size))||"null"),score={moves,seconds};if(!old||seconds<old.seconds||(seconds===old.seconds&&moves<old.moves))localStorage.setItem(key(size),JSON.stringify(score));const streak=+localStorage.getItem("shift-streak")+1;localStorage.setItem("shift-streak",streak);streakEl.textContent=streak;$("winTitle").textContent=old&&old.seconds<=seconds?"Puzzle complete.":"New personal best!";$("winStats").textContent=`${moves} moves · ${formatTime(seconds)}`;setTimeout(()=>$("win").hidden=false,250);render()}
+function undo(){if(!history.length||won)return;const previous=history.pop();cells=previous.cells;blank=cells.indexOf(0);moves=Math.max(0,moves-previous.count);render();message.textContent="Move undone."}
+function hint(){const options=neighbors(blank),ideal=solved(size);let pick=options.find(i=>cells[i]===ideal[blank])??options[Math.floor(Math.random()*options.length)];const tile=boardEl.querySelector(`[data-index="${pick}"]`);tile?.classList.add("hint");message.textContent=`Try moving tile ${cells[pick]}.`}
+function formatTime(s){return `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`}
+function formatBest(raw){if(!raw)return"—";const b=JSON.parse(raw);return formatTime(b.seconds)}
+function tone(){if(!sound)return;try{const a=new AudioContext(),o=a.createOscillator(),g=a.createGain();o.frequency.value=220;g.gain.setValueAtTime(.025,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.06);o.connect(g).connect(a.destination);o.start();o.stop(a.currentTime+.06)}catch{}}
+boardEl.onclick=e=>{const t=e.target.closest(".tile");if(t)move(+t.dataset.index)};
+boardEl.onpointerdown=e=>pointerStart={x:e.clientX,y:e.clientY,index:+e.target.closest(".tile")?.dataset.index};
+boardEl.onpointerup=e=>{if(!pointerStart)return;const dx=e.clientX-pointerStart.x,dy=e.clientY-pointerStart.y;if(Math.hypot(dx,dy)>25)move(pointerStart.index);pointerStart=null};
+document.onkeydown=e=>{if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)){e.preventDefault();const delta={ArrowUp:size,ArrowDown:-size,ArrowLeft:1,ArrowRight:-1}[e.key],i=blank+delta;if(i>=0&&i<cells.length&&neighbors(blank).includes(i))move(i)}if((e.ctrlKey||e.metaKey)&&e.key==="z")undo()};
+$("newGame").onclick=newGame;$("playAgain").onclick=newGame;$("undo").onclick=undo;$("hint").onclick=hint;
+document.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>{size=+b.dataset.size;document.querySelectorAll("[data-size]").forEach(x=>x.classList.toggle("active",x===b));newGame()});
+$("theme").onclick=()=>{const light=document.documentElement.dataset.theme==="light";document.documentElement.dataset.theme=light?"dark":"light";$("theme").textContent=light?"☾":"☀";localStorage.setItem("shift-theme",light?"dark":"light")};
+$("sound").onclick=()=>{sound=!sound;$("sound").textContent=sound?"Sound on":"Sound off";$("sound").setAttribute("aria-pressed",sound)};
+$("how").onclick=()=>$("help").showModal();$("closeHelp").onclick=()=>$("help").close();
+document.documentElement.dataset.theme=localStorage.getItem("shift-theme")||"dark";$("theme").textContent=document.documentElement.dataset.theme==="dark"?"☾":"☀";streakEl.textContent=localStorage.getItem("shift-streak")||0;newGame();
+window.ShiftEngine={solved,formatTime};
